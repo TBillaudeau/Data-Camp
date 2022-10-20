@@ -9,3 +9,4 @@ streamlit==1.13.0
 textblob==0.17.1
 wordcloud==1.8.2.2
 matplotlib==3.4.3
+tweepy==4.10.1
