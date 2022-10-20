@@ -1,0 +1,28 @@
+import streamlit as st
+
+def main_page():
+    st.markdown("")
+
+def sentiment():
+    st.markdown("")
+
+def main():
+    # Sidebar
+    st.sidebar.markdown("# Choose a page 📚")
+
+    # Main Page
+    st.image("logo_efrei.png", use_column_width=True)
+    st.markdown("# DataCamp Project 📊")
+    st.markdown("")
+    st.markdown("")
+    st.success("Go to the SENTIMENT app 📚 by clicking on the sidebar on the left")
+    st.image("logo_datacamp.png", use_column_width=True)
+    st.write("")
+    st.write('> *made by Thomas Billaudeau, Louis Arbey & Pierre-Louis Cretinon.*')
+
+    # It's freezing here
+    st.snow()
+    
+if __name__ == "__main__":
+    main()
+
