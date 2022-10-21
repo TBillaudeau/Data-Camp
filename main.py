@@ -13,12 +13,12 @@ def main():
     st.sidebar.markdown("Access the source files here : [GitHub](https://github.com/TBillaudeau/Data-Camp)")
 
     # Main Page
-    st.image("logo_efrei.png", use_column_width=True)
+    st.image("images/logo_efrei.png", use_column_width=True)
     st.markdown("# DataCamp Project 📊")
     st.markdown("")
     st.markdown("")
     st.success("Go to the SENTIMENT app 📚 by clicking on the sidebar on the left")
-    st.image("logo_datacamp.png", use_column_width=True)
+    st.image("images/logo_datacamp.png", use_column_width=True)
     st.write("")
     st.write('> *made by Thomas Billaudeau, Louis Arbey & Pierre-Louis Cretinon.*')
 

@@ -25,7 +25,7 @@ import asyncio
 
 # load data from a json file (test prupose only)
 def load_data():
-    with open('./tweets_uber.json') as f:
+    with open('data/tweets_uber.json') as f:
         data = json.load(f)
     return data
 
