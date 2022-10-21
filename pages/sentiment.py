@@ -48,15 +48,21 @@ def load_data_azure(company , nbr_of_tweets):
 # Function to load the data from twitter API
 @st.cache
 def get_data_twitterAPI(company,nbr_of_tweets):
-    # get keys from keys.json
-    with open('./venv/keys.json') as f:
-        keys = json.load(f)
-
-    # get the keys from the dictionary
-    consumer_key = keys['consumer_key']
-    consumer_secret = keys['consumer_secret']
-    access_token = keys['access_token']
-    access_token_secret = keys['access_token_secret']
+    try:
+        with open('./venv/keys.json') as f:
+            keys = json.load(f)
+        consumer_key = keys['consumer_key']
+        consumer_secret = keys['consumer_secret']
+        access_token = keys['access_token']
+        access_token_secret = keys['access_token_secret']
+    except:
+        print("cannot access file")
+    
+    if st.secrets['consumer_key']:
+        consumer_key = st.secrets['consumer_key']
+        consumer_secret = st.secrets['consumer_secret']
+        access_token = st.secrets['access_token']
+        access_token_secret = st.secrets['access_token_secret']
 
     # authentification to twitter with twitter api v2
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)

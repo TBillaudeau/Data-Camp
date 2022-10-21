@@ -13,7 +13,6 @@ def main():
     st.sidebar.markdown("Access the source files here : [GitHub](https://github.com/TBillaudeau/Data-Camp)")
 
     # Main Page
-    st.image("images/logo_efrei.png", use_column_width=True)
     st.markdown("# DataCamp Project 📊")
     st.markdown("")
     st.markdown("")
@@ -21,9 +20,6 @@ def main():
     st.image("images/logo_datacamp.png", use_column_width=True)
     st.write("")
     st.write('> *made by Thomas Billaudeau, Louis Arbey & Pierre-Louis Cretinon.*')
-
-    # It's freezing here
-    st.snow()
     
 if __name__ == "__main__":
     main()
