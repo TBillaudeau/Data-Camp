@@ -93,7 +93,6 @@ def load_data_twitter(company, nbr_of_tweets,language):
     succes = st.success("{} Tweets loaded".format(nbr_of_tweets))
     return data
 
-@st.experimental_memo(persist="disk")
 def wordcloud(text):
     plt.figure(figsize=(10, 7))
     fig, ax = plt.subplots()
@@ -103,13 +102,14 @@ def wordcloud(text):
     st.pyplot(fig)
 
 @st.cache
-def clean_text(text, company):
+def clean_text(text, company, language):
     text = text.apply(lambda x: re.sub(r"http\S+", "", x))
     text = text.apply(lambda x: x.lower())
     text = text.apply(lambda x: x.replace(company, ""))
     text = "".join([word for word in text if word not in string.punctuation])
     tokens = re.split('\W+', text)
-    text = [word for word in tokens if word not in stopwords.words('english')]
+    stopword = stopwords.words('english') if language == "en" else stopwords.words('french')
+    text = [word for word in tokens if word not in stopword]
     text = [word for word in text if len(word) > 1]
     return text
 
@@ -196,16 +196,16 @@ def dataAnalyse(data,company,language):
     col1, col2 = st.columns(2)
     with col1:
         st.write('Most Positive Tweets')
-        wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head(), company)))
+        wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head(), company, language)))
     with col2:
         st.write('Most Negative Tweets')
-        wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head(), company)))
+        wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head(), company, language)))
 
     st.header('Word Cloud of All Tweets')
-    wordcloud(" ".join(clean_text(df['full_text'], company)))
+    wordcloud(" ".join(clean_text(df['full_text'], company, language)))
 
     st.header('Word Frequency of All Tweets')
-    word_freq = Counter(clean_text(df['full_text'], company))
+    word_freq = Counter(clean_text(df['full_text'], company, language))
     common_words = word_freq.most_common(10)
     df_common_words = pd.DataFrame(common_words, columns=['word', 'count'])
     fig = px.bar(df_common_words, x='word', y='count', color='count', color_continuous_scale=px.colors.sequential.Plasma)
