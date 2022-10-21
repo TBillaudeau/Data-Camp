@@ -167,8 +167,9 @@ def dataAnalyse(data,company):
 
 
 def main():
-    st.title('👍 Is your entreprise doing well?')
+    st.title('👍 Is your entreprise doing well? 👎')
     st.header("Let's check the sentiment of your business on twitter!")
+    st.markdown("*more social medias to be added in the future*")
 
     # We ask the user basic infos
     company = st.text_input('Enter the name of your entreprise', 'Your company ...')

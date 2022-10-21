@@ -9,6 +9,8 @@ def sentiment():
 def main():
     # Sidebar
     st.sidebar.markdown("# Choose a page 📚")
+    st.sidebar.write("")
+    st.sidebar.markdown("Access the source files here : [GitHub](https://github.com/TBillaudeau/Data-Camp)")
 
     # Main Page
     st.image("logo_efrei.png", use_column_width=True)
