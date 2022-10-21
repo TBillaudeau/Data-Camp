@@ -12,6 +12,7 @@ import re
 from wordcloud import WordCloud
 import string
 from collections import Counter
+import translators as ts
 
 # Twitter API
 import tweepy
@@ -47,7 +48,7 @@ def load_data_azure(company , nbr_of_tweets):
 
 # Function to load the data from twitter API
 @st.experimental_memo(suppress_st_warning=True, persist="disk")
-def get_data_twitterAPI(company,nbr_of_tweets):
+def get_data_twitterAPI(company,nbr_of_tweets,language):
     try:
         with open('./venv/keys.json') as f:
             keys = json.load(f)
@@ -77,7 +78,7 @@ def get_data_twitterAPI(company,nbr_of_tweets):
     tweets_json = []
     last_date = None
     while i < nbr_of_tweets/100:
-        tweets = api.search_tweets(q=company + " -filter:retweets -rt -RT -giveaway -win -gift", count = 100,tweet_mode="extended",lang="en",until = last_date)
+        tweets = api.search_tweets(q=company + " -filter:retweets -rt -RT -giveaway -win -gift", count = 100,tweet_mode="extended",lang=language,until = last_date)
         for tweet in tweets:
             tweets_json.append(tweet._json)
         try:
@@ -87,12 +88,12 @@ def get_data_twitterAPI(company,nbr_of_tweets):
         i += 1
     return tweets_json
 
-def load_data_twitter(company,nbr_of_tweets):
-    data = get_data_twitterAPI(company,nbr_of_tweets)
+def load_data_twitter(company, nbr_of_tweets,language):
+    data = get_data_twitterAPI(company,nbr_of_tweets, language)
     succes = st.success("{} Tweets loaded".format(nbr_of_tweets))
     return data
 
-# 
+@st.experimental_memo(persist="disk")
 def wordcloud(text):
     plt.figure(figsize=(10, 7))
     fig, ax = plt.subplots()
@@ -101,12 +102,11 @@ def wordcloud(text):
     ax.imshow(wordcloud, interpolation="bilinear")
     st.pyplot(fig)
 
-# 
-def clean_text(text):
-    #remove links
-    #text = re.sub(r'http\S+', '', str(text))
-    #lowercase
-    #text = str(text).lower()
+@st.cache
+def clean_text(text, company):
+    text = text.apply(lambda x: re.sub(r"http\S+", "", x))
+    text = text.apply(lambda x: x.lower())
+    text = text.apply(lambda x: x.replace(company, ""))
     text = "".join([word for word in text if word not in string.punctuation])
     tokens = re.split('\W+', text)
     text = [word for word in tokens if word not in stopwords.words('english')]
@@ -129,7 +129,7 @@ def delete_same_tweets(data):
     return tweets
 
 # Function to do all the analysis
-def dataAnalyse(data,company):
+def dataAnalyse(data,company,language):
     # We use this function to delete same tweets
     data = delete_same_tweets(data)
 
@@ -144,19 +144,17 @@ def dataAnalyse(data,company):
     if data:
         df = pd.DataFrame.from_dict(data)
 
-
     tweet_bots = []
     bots = []
-
     for tweet in data:
         if tweet['full_text'] not in tweet_bots:
             tweet_bots.append(tweet)
         else:
             if tweet['user']['screen_name'] not in bots:
                 bots.append(tweet['user']['screen_name'])
-    
 
-
+    if str(df['lang']) == language:
+        df['full_text'] = df['full_text'].apply(lambda x: ts.google(x, from_language=language, to_language='en'))
 
     st.markdown('---')
     col1, col2, col3 = st.columns(3)
@@ -182,11 +180,9 @@ def dataAnalyse(data,company):
     df['date'] = df['created_at'].dt.date
     df['date'] = pd.to_datetime(df['date'])
     df['date'] = df['date'].dt.strftime('%Y-%m-%d')
-    #plot the compound score for minutes
+
     st.header('Sentiment Polarity of ' + company + ' Tweets by Minute')
     df['hour'] = df['created_at'].dt.hour
-    # df['minute'] = df['minute'].astype(str)
-    # df['minute'] = df['minute'] + 'm'
     fig = px.histogram(df, x='date', y='compound', color='date', histfunc='avg')
     st.plotly_chart(fig, use_container_width=True)
 
@@ -200,16 +196,16 @@ def dataAnalyse(data,company):
     col1, col2 = st.columns(2)
     with col1:
         st.write('Most Positive Tweets')
-        wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head())))
+        wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head(), company)))
     with col2:
         st.write('Most Negative Tweets')
-        wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head())))
+        wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head(), company)))
 
     st.header('Word Cloud of All Tweets')
-    wordcloud(" ".join(clean_text(df['full_text'])))
+    wordcloud(" ".join(clean_text(df['full_text'], company)))
 
     st.header('Word Frequency of All Tweets')
-    word_freq = Counter(clean_text(df['full_text']))
+    word_freq = Counter(clean_text(df['full_text'], company))
     common_words = word_freq.most_common(10)
     df_common_words = pd.DataFrame(common_words, columns=['word', 'count'])
     fig = px.bar(df_common_words, x='word', y='count', color='count', color_continuous_scale=px.colors.sequential.Plasma)
@@ -225,6 +221,7 @@ def main():
     # We ask the user basic infos
     company = st.text_input('Enter the name of your entreprise', 'Your company ...')
     nbr_of_tweets = st.slider('Number of tweets to load', 100, 2000, 100, 100)
+    language = st.selectbox("Choose the language of tweets", ('English', 'French'))[:2].lower()
 
     st.markdown('---')
 
@@ -236,8 +233,8 @@ def main():
         if company == 'Your company ...':
             st.error('Please enter a company name !')
         else:
-            data = load_data_twitter(company, nbr_of_tweets)
-            dataAnalyse(data,company)
+            data = load_data_twitter(company, nbr_of_tweets, language)
+            dataAnalyse(data,company,language)
     
 
 if __name__ == '__main__':
