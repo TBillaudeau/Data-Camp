@@ -46,7 +46,7 @@ def load_data_azure(company , nbr_of_tweets):
 
 
 # Function to load the data from twitter API
-@st.experimental_memo(suppress_st_warning=True)
+@st.experimental_memo(suppress_st_warning=True, persist="disk")
 def get_data_twitterAPI(company,nbr_of_tweets):
     try:
         with open('./venv/keys.json') as f:
@@ -75,11 +75,16 @@ def get_data_twitterAPI(company,nbr_of_tweets):
 
     i= 0
     tweets_json = []
+    last_date = None
     while i < nbr_of_tweets/100:
-        tweets = api.search_tweets(q=company + " -RT -giveaway -win -gift", count = 100,tweet_mode="extended",lang="en")
+        tweets = api.search_tweets(q=company + " -filter:retweets -rt -RT -giveaway -win -gift", count = 100,tweet_mode="extended",lang="en",until = last_date)
         for tweet in tweets:
             tweets_json.append(tweet._json)
-        i += 1 
+        try:
+            last_date = tweets[-1].created_at.strftime("%Y-%m-%d")
+        except:
+            pass
+        i += 1
     return tweets_json
 
 def load_data_twitter(company,nbr_of_tweets):
@@ -92,15 +97,20 @@ def wordcloud(text):
     plt.figure(figsize=(10, 7))
     fig, ax = plt.subplots()
     plt.axis('off')
-    wordcloud = WordCloud(background_color='white', width=800, height=500, random_state=21, max_font_size=110).generate(text)
+    wordcloud = WordCloud(background_color='white', width=800, height=500, random_state=21, max_font_size=80).generate(text)
     ax.imshow(wordcloud, interpolation="bilinear")
     st.pyplot(fig)
 
 # 
 def clean_text(text):
-    text = "".join([word.lower() for word in text if word not in string.punctuation])
+    #remove links
+    #text = re.sub(r'http\S+', '', str(text))
+    #lowercase
+    #text = str(text).lower()
+    text = "".join([word for word in text if word not in string.punctuation])
     tokens = re.split('\W+', text)
     text = [word for word in tokens if word not in stopwords.words('english')]
+    text = [word for word in text if len(word) > 1]
     return text
 
 def delete_same_tweets(data):
@@ -134,10 +144,28 @@ def dataAnalyse(data,company):
     if data:
         df = pd.DataFrame.from_dict(data)
 
+
+    tweet_bots = []
+    bots = []
+
+    for tweet in data:
+        if tweet['full_text'] not in tweet_bots:
+            tweet_bots.append(tweet)
+        else:
+            if tweet['user']['screen_name'] not in bots:
+                bots.append(tweet['user']['screen_name'])
+    
+
+
+
+    st.markdown('---')
     col1, col2, col3 = st.columns(3)
     col1.metric("Number of Positive Tweets", df[df['compound'] > 0.05].shape[0])
     col2.metric("Number of Negative Tweets", df[df['compound'] < -0.05].shape[0])
     col3.metric("Number of Neutral Tweets", df[(df['compound'] >= -0.05) & (df['compound'] <= 0.05)].shape[0])
+    
+    st.info(f'{len(bots)} bots found')
+    st.markdown('---')
 
     st.header('Sentiment Polarity of ' + company + ' Tweets')
     fig = px.scatter(df, x='neg', y='pos', color='compound')
@@ -145,9 +173,21 @@ def dataAnalyse(data,company):
 
     st.header('Sentiment Distribution of ' + company + ' Tweets')
     labels = ['Negative', 'Neutral', 'Positive']
-    values = [df['neg'].count(), df['neu'].count(), df['pos'].count()]
+    values = [df[df['compound'] < -0.05].shape[0], df[(df['compound'] >= -0.05) & (df['compound'] <= 0.05)].shape[0], df[df['compound'] > 0.05].shape[0]]
     colors = ['#FEBFB3', '#E1396C', '#96D38C']
     fig = px.pie(df, values=values, names=labels, color=labels, color_discrete_sequence=colors)
+    st.plotly_chart(fig, use_container_width=True)
+       
+    df['created_at'] = pd.to_datetime(df['created_at'])
+    df['date'] = df['created_at'].dt.date
+    df['date'] = pd.to_datetime(df['date'])
+    df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+    #plot the compound score for minutes
+    st.header('Sentiment Polarity of ' + company + ' Tweets by Minute')
+    df['hour'] = df['created_at'].dt.hour
+    # df['minute'] = df['minute'].astype(str)
+    # df['minute'] = df['minute'] + 'm'
+    fig = px.histogram(df, x='date', y='compound', color='date', histfunc='avg')
     st.plotly_chart(fig, use_container_width=True)
 
     st.header('Most Negative Tweets')
@@ -156,11 +196,14 @@ def dataAnalyse(data,company):
     st.header('Most Positive Tweets')
     st.write(df.sort_values('compound', ascending=False)['full_text'].head())
 
-    st.header('Word Cloud of Most Negative Tweets')
-    wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head())))
-
-    st.header('Word Cloud of Most Positive Tweets')
-    wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head())))
+    st.header('Word Cloud of ' + company + ' Tweets')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write('Most Positive Tweets')
+        wordcloud(" ".join(clean_text(df.sort_values('compound', ascending=False)['full_text'].head())))
+    with col2:
+        st.write('Most Negative Tweets')
+        wordcloud(" ".join(clean_text(df.sort_values('compound')['full_text'].head())))
 
     st.header('Word Cloud of All Tweets')
     wordcloud(" ".join(clean_text(df['full_text'])))
@@ -178,7 +221,6 @@ def dataAnalyse(data,company):
 def main():
     st.title('👍Is your entreprise doing well?👎')
     st.header("Let's check the sentiment of your business on twitter!")
-    st.markdown("*more social medias to be added in the future*")
     st.markdown('---')
     # We ask the user basic infos
     company = st.text_input('Enter the name of your entreprise', 'Your company ...')
