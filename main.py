@@ -13,7 +13,8 @@ def main():
     st.sidebar.markdown("Access the source files here : [GitHub](https://github.com/TBillaudeau/Data-Camp)")
 
     # Main Page
-    st.markdown("# DataCamp Project 📊")
+    st.markdown("# What'Said 📊")
+    st.markdown("## Analyse what is said of an entreprise on Twitter")
     st.markdown("")
     st.markdown("")
     st.success("Go to the SENTIMENT app 📚 by clicking on the sidebar on the left")
