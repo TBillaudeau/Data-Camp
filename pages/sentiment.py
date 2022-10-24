@@ -24,6 +24,13 @@ import time
 from azure.cosmos import exceptions, CosmosClient, PartitionKey
 import asyncio
 
+st.set_page_config(
+        page_title="What'Said",
+        page_icon="favicon.ico",
+)
+
+st.sidebar.markdown("# What'Said 📊")
+
 # load data from a json file (test prupose only)
 def load_data():
     with open('data/tweets_uber.json') as f:
@@ -105,7 +112,9 @@ def wordcloud(text):
 def clean_text(text, company, language):
     text = text.apply(lambda x: re.sub(r"http\S+", "", x))
     text = text.apply(lambda x: x.lower())
-    text = text.apply(lambda x: x.replace(company, ""))
+    text = text.apply(lambda x: x.replace(company.lower(), ""))
+    text = text.apply(lambda x: x.replace("&amp;", ""))
+    text = text.apply(lambda x: re.sub(r"\d+", "", x))
     text = "".join([word for word in text if word not in string.punctuation])
     tokens = re.split('\W+', text)
     stopword = stopwords.words('english') if language == "en" else stopwords.words('french')
@@ -220,6 +229,10 @@ def main():
     st.markdown('---')
     # We ask the user basic infos
     company = st.text_input('Enter the name of your entreprise', 'Your company ...')
+    if company == "blizzard" or company == "Blizzard":
+        st.snow()
+    if company == 'balloon':
+        st.balloons() 
     nbr_of_tweets = st.slider('Number of tweets to load', 100, 2000, 100, 100)
     language = st.selectbox("Choose the language of tweets", ('English', 'French'))[:2].lower()
 
